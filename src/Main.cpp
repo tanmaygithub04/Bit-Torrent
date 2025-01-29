@@ -9,12 +9,25 @@
 #include <charconv>
 #include <stdexcept>
 #include "lib/nlohmann/json.hpp"
-#include "lib/hash/sha1.hpp"
+#include <openssl/sha.h>
 #include "lib/hash/HTTPRequest.hpp"
-
+#include <boost/asio.hpp>
+#include <unistd.h>
+using boost::asio::ip::tcp;
 using json = nlohmann::json;
 using namespace std;
 
+
+std::string compute_sha1(const std::string& input) {
+    unsigned char hash[SHA_DIGEST_LENGTH]; // SHA1 produces a 20-byte hash
+
+    SHA_CTX sha1_ctx;
+    SHA1_Init(&sha1_ctx);
+    SHA1_Update(&sha1_ctx, input.c_str(), input.length());
+    SHA1_Final(hash, &sha1_ctx);
+
+    return std::string(reinterpret_cast<char*>(hash), SHA_DIGEST_LENGTH);
+}
 
 string hash_to_hex_string(const string& piece_hash){
     ostringstream oss;
@@ -138,6 +151,7 @@ pair<optional<json>, size_t> decode_value(string_view encoded_value) {
     }
     return {nullopt, 0};
 }
+
 string format_string(const string& template_str, const vector<string>& args) {
     ostringstream oss;
     size_t pos = 0;
@@ -151,6 +165,54 @@ string format_string(const string& template_str, const vector<string>& args) {
     return oss.str();
 }
 
+
+string perform_handshake(const std::string& ip, const string& port, const std::string& info_hash, const std::string& our_peer_id) {
+    boost::asio::io_context context;
+    boost::asio::ip::tcp::resolver resolver(context);
+    boost::asio::ip::tcp::resolver::results_type endpoints;
+
+    try {
+        endpoints = resolver.resolve(ip, port);
+    } catch (const boost::system::system_error& e) {
+        std::cerr << "Error during hostname resolution: " << e.what() << std::endl;
+        return ""; // Exit or handle error
+    }
+    tcp::socket socket(context);
+    boost::asio::connect(socket, endpoints);
+
+    if(socket.is_open()){
+        cout << "socket is open " << endl;
+        std::string protocol = "BitTorrent protocol";
+        std::array<unsigned char, 68> handshake_msg;
+        cout << info_hash << " <- info hash" << endl;
+        // Fill in handshake message with "protocol" and other fields (infohash, peer id)
+        handshake_msg[0] = protocol.length();
+        std::copy(protocol.begin(), protocol.end(), handshake_msg.begin() + 1);
+        
+        // Add 8 reserved bytes (can be 0 for now)
+        std::fill(handshake_msg.begin() + 20, handshake_msg.begin() + 28, 0);
+
+        copy(info_hash.begin(),info_hash.end(),handshake_msg.begin() + 28);
+
+        copy(our_peer_id.begin(),our_peer_id.end(),handshake_msg.begin() + 48);
+
+        boost::asio::write(socket, boost::asio::buffer(handshake_msg));
+        std::array<unsigned char, 68> response;
+        boost::asio::read(socket, boost::asio::buffer(response));
+
+        // check is info hash is same or not 
+        size_t start_of_info_hash = 28;
+        array<char, 20> res_info_hash;
+        memcpy(res_info_hash.data(), handshake_msg.data() + start_of_info_hash, 20);
+        if(memcmp(res_info_hash.data(), info_hash.data() , 20) == 0){
+            string peerID(response.begin() + 48 , response.end());
+            return peerID;
+        }
+        cout << "invalid response or error" << endl;
+        return "";
+    }
+
+}
 
 int main(int argc, char* argv[]) {
     cout << unitbuf;
@@ -189,19 +251,18 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         try{
-            SHA1 sha1_1;
             stringstream contentStream;
             contentStream << fileStream.rdbuf();
             const string encoded_file_content = contentStream.str();
             const auto [decoded_value, offset] = decode_value(encoded_file_content);
             const auto info_dict = decoded_value.value()["info"];
             string bencoded_info_dict = bencode(info_dict);
-            sha1_1.update(bencoded_info_dict);
+            string hexed_sha1_info_dict = hash_to_hex_string(compute_sha1(bencoded_info_dict));
 
             if (decoded_value.has_value()) {
                 cout << "Tracker URL: " << decoded_value.value()["announce"].get<string>() << endl;
                 cout << "Length: " << info_dict["length"].get<int64_t>() << endl;
-                cout << "Info Hash: " << sha1_1.final() << endl;
+                cout << "Info Hash: " << hexed_sha1_info_dict << endl;
                 cout << "Piece Length: " << info_dict["piece length"].get<int64_t>() << endl;
 
                 // Parse and display piece hashes
@@ -231,15 +292,18 @@ int main(int argc, char* argv[]) {
                 std::string_view file_data_view(file_data.data(), file_data.size());
                 try
                 {
-                        SHA1 sha1_2;
+                        
                         auto [decoded_info, _1] = decode_value(file_data_view);
                         string bencoded_string = bencode(decoded_info.value()["info"]);
                         string url = decoded_info.value()["announce"].get<std::string>();
-                        sha1_2.update(bencoded_string);
-                        string encoded_info_hash = url_encode(sha1_2.final());
+                        string hashed_sha_info = hash_to_hex_string(compute_sha1(bencoded_string));
+                        string encoded_info_hash = url_encode(hashed_sha_info);
+
                         std::string left = std::to_string(file_data.size()); // Convert size_t to string
                         http::Request request{url + "?info_hash=" + encoded_info_hash + "&peer_id=00112233445566778899&port=6881&uploaded=0&downloaded=0&left=" + left + "&compact=1"};
+
                         const auto response = request.send("GET");
+
                         std::string response_body{response.body.begin(), response.body.end()};
                         std::string_view response_body_view(response_body.data(), response_body.size());
                         auto [decoded_response, _2] = decode_value(response_body_view);
@@ -260,6 +324,46 @@ int main(int argc, char* argv[]) {
                         return 1;
                 }
     } 
+    else if(command == "handshake"){
+        if (argc < 3) {
+        cerr << "Usage: " << argv[0] << " handshake <torrent_file> <peer_ip> <peer_port>" << endl;
+        return 1;
+    }
+
+    string peer_ip = argv[3];
+    string peer_port = argv[4];
+
+    // Read and parse torrent file
+    ifstream input_file(argv[2], ios::binary);
+    if (!input_file) {
+        cerr << "Error opening torrent file: " << argv[2] << endl;
+        return 1;
+    }
+
+    vector<char> file_data((istreambuf_iterator<char>(input_file)), istreambuf_iterator<char>());
+    string_view file_data_view(file_data.data(), file_data.size());
+
+    try {
+        auto [decoded_info, _] = decode_value(file_data_view);
+        string bencoded_string = bencode(decoded_info.value()["info"]);
+        string sha1_info_dict = compute_sha1(bencoded_string);
+        cout << sha1_info_dict << " my info hash ";
+        // Generate a random peer ID (you might want to make this consistent)
+        string peer_id = "00112233445566778899";
+        // Perform the handshake
+        string res = perform_handshake(peer_ip, peer_port, sha1_info_dict, peer_id);
+        if(res != ""){
+            cout << "Handshake successful!" << endl;
+            cout << "peer Id is : " << hash_to_hex_string(res) << endl;
+        } else {
+            cerr << "Handshake failed!" << endl;
+            return 1;
+        }
+    } catch (const std::exception& e) {
+        cerr << "Error during handshake: " << e.what() << endl;
+        return 1;
+    }
+    }
     else {
         cerr << "Unknown command: " << command << endl;
         return 1;
@@ -267,3 +371,8 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+
+
+
+// handshake sample.torrent 165.232.38.164 51493
