@@ -47,7 +47,30 @@ BIT V2/
 
 ## Features Implemented ✅
 
--
+1. **Block-Based Piece Downloading:**  
+   Downloads pieces in 16 KiB blocks by sending REQUEST messages and assembling the corresponding PIECE messages.
+
+2. **Piece Integrity Verification:**  
+   Computes the SHA-1 hash of each downloaded piece and compares it against the expected hash from the torrent metadata to ensure file integrity.
+
+3. **File Assembly:**  
+   Once all pieces are successfully downloaded and verified, the client assembles them into the final output file.
+
+4. **Peer Connection & Handshake:**  
+   Uses Boost.Asio to resolve peer addresses, establish TCP connections, and perform the BitTorrent handshake.
+
+5. **Low-Level Message I/O:**  
+   The Peer class handles sending and receiving protocol messages with proper framing (4-byte length prefix, message ID, and payload).
+
+6. **Torrent Metadata Parsing:**  
+   Extracts essential information (info_hash, piece length, total file length, concatenated SHA-1 hashes) from torrent files.
+
+7. **Bencode Decoding:**  
+   Implements bencode parsing utilities to correctly read and interpret torrent metadata.
+
+8. **Modular Architecture:**  
+   Refactored from a monolithic implementation into separate, maintainable components (TorrentMetadata, Peer, and DownloadManager) to improve clarity and scalability.
+
 
 
 ## Assumptions 📌
