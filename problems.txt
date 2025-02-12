@@ -1,7 +1,0 @@
--> i was facing difficulty when i was implementing info hash as it needed me to get bencoded string from the json thatI made in the
- previous setp of parsing the torrent initially as I had converted my torrent file into json object i thought I can just use the str 
- function of json but it is not built to handle raw binary data it can only handle utf8 so I then converted json object to a std::string 
- and then bencoded it and calculated sha1 hash of that value 
-
-
- -> 

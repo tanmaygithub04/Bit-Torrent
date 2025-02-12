@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
         // Step 3: create a downlaod Manger class
         DownloadManager dm(&metadata,response->peers);
         dm.connectToPeers();
-        string outputPath = "../downloads";
+        string outputPath = "src/downloads/";
         cout << "total peices to be downloaded : " <<  metadata.getTotalPieces() << endl;
         for (int pieceIndex = 0; pieceIndex < metadata.getTotalPieces(); ++pieceIndex) {
         cout << "Downloading piece " << pieceIndex << "..." << endl;

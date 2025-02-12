@@ -122,7 +122,7 @@ std::optional<std::vector<uint8_t>> DownloadManager::downloadPiece(int piece_idx
 
 bool DownloadManager::assembleFile( std::string& outputPath) {
     // check if all pieces have been downloaded 
-    outputPath+=m_metadata->getName();
+    outputPath +=m_metadata->getName();
     for(int i=0 ; i<m_totalPieces ; i++){
         if(!m_downloadedPieces[i]){
             cerr << "All pieces are not avialable" << endl;
@@ -131,7 +131,7 @@ bool DownloadManager::assembleFile( std::string& outputPath) {
     }
     std::ofstream outfile(outputPath, std::ios::binary);
     if(!outfile){
-        cerr << "error opening the path , recheck the path .." << endl;
+        cerr << "error opening the path , recheck the path" << outputPath << endl;
         return false;
     }
     for(int i=0 ; i<m_totalPieces ; i++){
