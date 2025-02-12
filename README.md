@@ -9,11 +9,10 @@ This is a BitTorrent client implementation in C++. The project is a work-in-prog
 ```
 BIT V2/
 │── src/
-│   ├── core/               # Core functionality (yet to be implemented)
+│   ├── core/               # Core functionality 
 │   ├── downloads/          # Stores downloaded files
-│   │   ├── output.dat      # Example downloaded file
-│   │   ├── sample.txt      # Test file
-│   ├── lib/                # External libraries (if needed)
+│   │   ├── sample.txt      # Test file - downloaded 
+│   ├── lib/                # External libraries
 │   ├── utils/              # Utility functions
 │   │   ├── bencode.cpp     # Bencode parsing
 │   │   ├── bencode.h       
@@ -22,7 +21,6 @@ BIT V2/
 │   │   ├── hash.h          
 │   │   ├── main.cpp        # Entry point of the project
 │── .gitignore              # Ignoring unnecessary files
-│── bittorrent              # (Need to clarify what this file is)
 │── build.sh                # Build script
 │── sample.torrent          # Example torrent file
 ```
