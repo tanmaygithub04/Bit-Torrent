@@ -37,8 +37,9 @@ BIT V2/
    ./build.sh
    ```
 3. **Run the client:**
+    you will be prompted to enter arguments, Enter :
    ```sh
-   ./bittorrent sample.torrent
+    downnload_file sample.torrent
    ```
    *(Make sure **`sample.torrent`** exists in the project root!)*
 
