@@ -73,7 +73,7 @@ BIT V2/
 
 ## Assumptions 📌
 
-- This is a simple Bit torrent client without Piece Selection , Or Tracker Implementation , Or any Choking Algorithm so might not work for all torrent files
+- This is a simple Bit torrent client without Piece Selection , or Tracker Implementation , or any Choking Algorithm so might not work for all torrent files
 - The client assumes the `.torrent` file is valid and well-formed.
 - Peers listed in the torrent metadata are available and active.
 - The download directory (`src/downloads/`) exists before running the program.
