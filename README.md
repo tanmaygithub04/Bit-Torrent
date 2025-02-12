@@ -24,7 +24,6 @@ BIT V2/
 │── .gitignore              # Ignoring unnecessary files
 │── bittorrent              # (Need to clarify what this file is)
 │── build.sh                # Build script
-│── newsetup.sh             # Setup script
 │── sample.torrent          # Example torrent file
 ```
 
@@ -32,7 +31,7 @@ BIT V2/
 
 1. **Clone the repo:**
    ```sh
-   git clone <repo-link>
+   git clone <https://github.com/tanmaygithub04/Bit-Torrent>
    cd BIT-V2
    ```
 2. **Build the project:**
