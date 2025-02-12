@@ -79,7 +79,7 @@ BIT V2/
 - The download directory (`src/downloads/`) exists before running the program.
 
 ## Future Plans
-
+- Add multithreading to improve speed
 - Add a frontend to this 
 - Make it compatible with standard torrents 
 - Can go in direction of video downloading/streaming or in the direction of implementing advanced algorithms 
