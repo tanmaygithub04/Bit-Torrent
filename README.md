@@ -1,5 +1,5 @@
-# BitTorrent Client
 
+# BitTorrent Client
 A complete BitTorrent client implementation in C++20 with multi-peer downloading, SHA-1 verification, and cross-platform support.
 
 ## 🌐 Try in Browser (Zero Setup)
@@ -72,80 +72,145 @@ The script will compile and test automatically.
 
 ```
 Bit-Torrent/
-├── torrents/          # Put your .torrent files here
-├── downloads/         # Downloaded files appear here
-├── run.sh            # Simple runner script
-└── src/              # Source code
-    ├── Main.cpp      # Entry point
-    ├── core/         # BitTorrent protocol implementation
-    └── utils/        # Utilities (bencode, hashing, etc.)
+├── src/
+│   ├── core/
+│   │   ├── DownloadManager.cpp     # Orchestrates downloads
+│   │   ├── DownloadManager.h
+│   │   ├── peer.cpp                # Peer communication
+│   │   ├── peer.h
+│   │   ├── torrent.cpp             # Torrent metadata parsing
+│   │   ├── torrent.h
+│   │   ├── tracker.cpp             # Tracker communication
+│   │   └── tracker.h
+│   ├── utils/
+│   │   ├── bencode.cpp             # Bencode parsing
+│   │   ├── bencode.h
+│   │   ├── error.h                 # Error handling
+│   │   ├── hash.cpp                # SHA-1 hashing
+│   │   ├── hash.h
+│   │   └── terminal_ui.h           # UI utilities
+│   └── Main.cpp                    # Entry point
+├── torrents/
+│   └── sample.torrent              # Sample torrent file
+├── downloads/                      # Downloaded files appear here
+├── README.md                       # Project documentation
+├── run.sh                          # Simple runner script
 ```
 
-## 🎯 Using Your Own Torrents
-
-1. **Add your .torrent file:**
-   ```bash
-   cp your-file.torrent torrents/
-   ```
-
-2. **Run with Docker:**
-   ```bash
-   docker run -it --rm \
-     -v $(pwd)/torrents:/app/torrents \
-     -v $(pwd)/downloads:/app/downloads \
-     bittorrent-client download_file /app/torrents/your-file.torrent
-   ```
-
-3. **Run locally:**
-   ```bash
-   ./build/bittorrent download_file torrents/your-file.torrent
-   ```
 
 ## 🏗️ Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Main Application                     │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+┌─────────────────────────▼───────────────────────────────────┐
+│                   Download Manager                          │
+│  • Orchestrates download process                            │
+│  • Manages piece verification                               │
+│  • Handles file assembly                                    │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+         ┌────────────────┼────────────────┐
+         │                │                │
+┌────────▼────────┐  ┌────▼────────┐  ┌───-▼─────────┐
+│  Torrent Parser │  │   Tracker   │  │  Peer Manager│
+│  • Metadata     │  │  • Get peers│  │  • Handshake │
+│  • Bencode      │  │  • Announce │  │  • Messages  │
+│  • Info hash    │  │  • HTTP     │  │  • Downloads │
+└─────────────────┘  └─────────────┘  └──────────────┘
+```
 
-- **TorrentMetadata**: Parses .torrent files using custom bencode decoder
-- **DownloadManager**: Orchestrates downloads, manages pieces, verifies hashes
-- **Peer**: Handles BitTorrent protocol, peer connections, data transfer
-- **Tracker**: Communicates with trackers to get peer lists
 
-## ⚡ Features
 
-- ✅ Complete BitTorrent protocol implementation
-- ✅ Multi-peer concurrent downloading
-- ✅ SHA-1 piece verification
-- ✅ Custom bencode parser
-- ✅ Cross-platform support (Linux, macOS, Windows)
-- ✅ Docker containerization
-- ✅ Real-time download progress
+## Features Implemented 
 
-## 🛠️ Technical Details
+1. Block-Based Piece Downloading✅:
+Downloads pieces in 16 KiB blocks by sending REQUEST messages and assembling the corresponding PIECE messages.
 
-- **Language**: C++20
-- **Networking**: Boost.Asio
-- **Crypto**: OpenSSL (SHA-1 hashing)
-- **Build**: CMake/g++
-- **Container**: Docker
+2. Piece Integrity Verification✅:
+Computes the SHA-1 hash of each downloaded piece and compares it against the expected hash from the torrent metadata to ensure file integrity.
 
-## 📊 Performance
+3. File Assembly✅:
+Once all pieces are successfully downloaded and verified, the client assembles them into the final output file.
 
-- Concurrent piece downloading from multiple peers
-- 16KB block size for optimal network usage
-- Efficient memory management with streaming verification
-- Cross-platform networking with Boost.Asio
+4. Peer Connection & Handshake✅:
+Uses Boost.Asio to resolve peer addresses, establish TCP connections, and perform the BitTorrent handshake.
 
-## 🤝 Contributing
+5. Torrent Metadata Parsing✅:
+Extracts essential information (info_hash, piece length, total file length, concatenated SHA-1 hashes) from torrent files.
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with both Docker and local build
-5. Submit a pull request
+6. Bencode Decoding✅:
+Implements bencode parsing utilities to correctly read and interpret torrent metadata.
+
+7. Modular Architecture✅:
+Refactored from a monolithic implementation into separate, maintainable components (TorrentMetadata, Peer, and DownloadManager) to improve clarity and scalability.
+
+Assumptions 📌
+This is a simple Bit torrent client without Piece Selection , or Tracker Implementation , or any Choking Algorithm so might not work for all torrent files
+The client assumes the .torrent file is valid and well-formed.
+Peers listed in the torrent metadata are available and active.
+The download directory (src/downloads/) exists before running the program.
+
+
+## Future Plans
+- [ ] Make it compatibility with standard multi file torrents 
+- [ ] Can go in direction of video downloading/streaming or in the direction of implementing advanced algorithms 
+- [ ] Multithreaded piece downloading
+- [ ] DHT (Distributed Hash Table) support
+- [ ] Magnet link support
+- [ ] Web UI interface
+- [ ] Bandwidth throttling
+
+
+## Problems Faced 🛠
+- Monolithic Code Structure
+Initially, all functionality was implemented in a single file, making the code hard to maintain. This necessitated refactoring into modular components.
+Linker and Undefined Symbols
+
+- Some functions were declared but not defined or had signature mismatches, leading to linker errors.
+URL Encoding and Conversion Errors
+
+- Improper encoding of binary data (like the info hash) resulted in conversion errors such as “stoul: no conversion.”
+UTF‑8 Validation Issues
+
+- The tracker’s compact peer data wasn’t valid UTF‑8, which broke JSON parsing until UTF‑8 validation was disabled.
+File Path and Directory Problems
+
+- Incorrect relative paths (e.g., using "../downloads/sample.txt" instead of the correct path) and missing directories led to file-opening errors.
+Piece Assembly Errors
+
+- Using vector insertion to assemble piece data appended blocks rather than placing them at the correct offsets, causing hash mismatches.
+State Management for Peer Communication
+
+- Waiting for an UNCHOKE message on every piece download—even when the peer was already unchoked—resulted in failed downloads.
+Segmentation Faults & Memory Issues
+
+- Mismanagement of memory and null pointer dereferences caused segmentation faults during handshake and piece download.
+And Many more 😅
+
+
+## Contributing ✨
+
+If you want to contribute:
+
+- Fork the repo
+- Create a feature branch
+- Make changes and submit a PR 🚀
+
+
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-**Built with C++20 • Boost.Asio • OpenSSL • Docker**
+<div align="center">
+
+**[Demo](https://github.com/tanmaygithub04/Bit-Torrent)** • **[Documentation](https://github.com/tanmaygithub04/Bit-Torrent/wiki)** • **[Issues](https://github.com/tanmaygithub04/Bit-Torrent/issues)**
+
+*Built with C++20 • Boost.Asio • OpenSSL • Docker*
+
+</div>
 
