@@ -39,7 +39,7 @@ BIT V2/
 3. **Run the client:**
     you will be prompted to enter arguments, Enter :
    ```sh
-    downnload_file sample.torrent
+    download_file sample.torrent
    ```
    *(Make sure **`sample.torrent`** exists in the project root!)*
 
