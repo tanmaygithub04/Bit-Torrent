@@ -8,7 +8,16 @@ A fully functional BitTorrent client implementation in C++ that demonstrates und
 
 ## 🚀 Quick Demo
 
-**Try it instantly with Docker (no setup required):**
+### **🌐 Try in Browser (Zero Setup)**
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tanmaygithub04/Bit-Torrent)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/tanmaygithub04/Bit-Torrent)
+
+**Click above → VS Code opens in browser → Run:**
+```bash
+./quick-start.sh docker-download sample.torrent
+```
+
+### **💻 Try Locally (Docker Required)**
 ```bash
 git clone https://github.com/tanmaygithub04/Bit-Torrent.git
 cd Bit-Torrent
@@ -54,9 +63,15 @@ cd Bit-Torrent
 
 ## 🚀 Getting Started
 
-### Option 1: Docker (Recommended for Demo)
+### Option 1: Browser Demo (Recommended for Recruiters)
 
-Perfect for quick demonstrations:
+**Zero setup required - runs in browser:**
+- Click the GitHub Codespaces or Gitpod badge above
+- Pre-configured environment with all dependencies
+- VS Code interface in browser
+- Perfect for interviews and demonstrations
+
+### Option 2: Docker (Local Demo)
 
 ```bash
 # Clone and run instantly
@@ -71,7 +86,7 @@ cp your-file.torrent torrents/
 ./quick-start.sh docker-download your-file.torrent
 ```
 
-### Option 2: Local Build
+### Option 3: Local Build
 
 For development and customization:
 

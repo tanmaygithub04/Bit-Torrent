@@ -1,0 +1,38 @@
+{
+    "name": "BitTorrent Client Development",
+    "image": "mcr.microsoft.com/devcontainers/cpp:ubuntu-22.04",
+    
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential && chmod +x build.sh quick-start.sh",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cmake-tools",
+                "ms-azuretools.vscode-docker"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "files.associations": {
+                    "*.h": "cpp",
+                    "*.cpp": "cpp"
+                }
+            }
+        }
+    },
+
+    "forwardPorts": [6881],
+    "portsAttributes": {
+        "6881": {
+            "label": "BitTorrent Client",
+            "onAutoForward": "notify"
+        }
+    },
+
+    "remoteUser": "vscode"
+} 

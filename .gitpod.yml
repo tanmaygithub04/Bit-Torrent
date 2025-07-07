@@ -1,0 +1,25 @@
+image: gitpod/workspace-cpp
+
+tasks:
+  - name: Setup BitTorrent Client
+    init: |
+      sudo apt-get update
+      sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential
+      chmod +x build.sh quick-start.sh
+      echo "🚀 BitTorrent Client environment ready!"
+      echo "Try: ./quick-start.sh docker-download sample.torrent"
+    command: |
+      gp sync-done setup
+      echo "Welcome to BitTorrent Client!"
+      echo "Quick demo: ./quick-start.sh docker-download sample.torrent"
+
+ports:
+  - port: 6881
+    onOpen: notify
+    description: BitTorrent Client Port
+
+vscode:
+  extensions:
+    - ms-vscode.cpptools
+    - ms-vscode.cmake-tools
+    - ms-azuretools.vscode-docker 
