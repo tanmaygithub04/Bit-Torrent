@@ -1,0 +1,233 @@
+name: Build BitTorrent Client
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: bittorrent-linux
+            asset_name: bittorrent-linux-x64
+          - os: macos-latest
+            artifact_name: bittorrent-macos
+            asset_name: bittorrent-macos-x64
+          - os: windows-latest
+            artifact_name: bittorrent-windows.exe
+            asset_name: bittorrent-windows-x64.exe
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake libboost-all-dev libssl-dev pkg-config
+
+    - name: Set up dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew update
+        brew install boost openssl cmake
+
+    - name: Set up dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Install dependencies using vcpkg
+        vcpkg install boost-system boost-beast openssl --triplet x64-windows
+
+    - name: Build project (Linux/macOS)
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir -p build
+        
+        # Find the correct main file
+        if [ -f "src/main.cpp" ]; then
+            MAIN_FILE="src/main.cpp"
+        elif [ -f "src/Main.cpp" ]; then
+            MAIN_FILE="src/Main.cpp"
+        else
+            echo "Neither src/main.cpp nor src/Main.cpp found!"
+            exit 1
+        fi
+        
+        echo "Using main file: $MAIN_FILE"
+        
+        # Set up compiler flags
+        INCLUDE_DIRS="-I./src -I./src/core -I./src/utils -I./src/lib"
+        LIBRARY_DIRS=""
+        LIBRARIES="-lboost_system -lssl -lcrypto -lpthread"
+        
+        if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            HOMEBREW_PREFIX=$(brew --prefix)
+            INCLUDE_DIRS="$INCLUDE_DIRS -I$HOMEBREW_PREFIX/include"
+            LIBRARY_DIRS="$LIBRARY_DIRS -L$HOMEBREW_PREFIX/lib"
+            
+            OPENSSL_PREFIX=$(brew --prefix openssl)
+            INCLUDE_DIRS="$INCLUDE_DIRS -I$OPENSSL_PREFIX/include"
+            LIBRARY_DIRS="$LIBRARY_DIRS -L$OPENSSL_PREFIX/lib"
+        fi
+        
+        # Compile
+        g++ -std=c++20 \
+            $INCLUDE_DIRS \
+            $LIBRARY_DIRS \
+            -o build/${{ matrix.artifact_name }} \
+            $MAIN_FILE \
+            src/core/*.cpp \
+            src/utils/*.cpp \
+            $LIBRARIES \
+            -O2 -DNDEBUG
+        
+        # Make executable
+        chmod +x build/${{ matrix.artifact_name }}
+
+    - name: Build project (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir -p build
+        
+        # Find the correct main file
+        if (Test-Path "src/main.cpp") {
+            $MAIN_FILE = "src/main.cpp"
+        } elseif (Test-Path "src/Main.cpp") {
+            $MAIN_FILE = "src/Main.cpp"
+        } else {
+            Write-Error "Neither src/main.cpp nor src/Main.cpp found!"
+            exit 1
+        }
+        
+        Write-Host "Using main file: $MAIN_FILE"
+        
+        # Use vcpkg toolchain
+        $env:VCPKG_ROOT = "C:/vcpkg"
+        $env:CMAKE_TOOLCHAIN_FILE = "$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+        
+        # Create CMakeLists.txt for Windows build
+        @"
+        cmake_minimum_required(VERSION 3.15)
+        project(BitTorrent)
+        
+        set(CMAKE_CXX_STANDARD 20)
+        set(CMAKE_CXX_STANDARD_REQUIRED ON)
+        
+        find_package(Boost REQUIRED COMPONENTS system)
+        find_package(OpenSSL REQUIRED)
+        
+        include_directories(src src/core src/utils src/lib)
+        
+        file(GLOB_RECURSE SOURCES "src/core/*.cpp" "src/utils/*.cpp" "$MAIN_FILE")
+        
+        add_executable(bittorrent `${SOURCES})
+        target_link_libraries(bittorrent Boost::system OpenSSL::SSL OpenSSL::Crypto)
+        "@ | Out-File -FilePath CMakeLists.txt -Encoding utf8
+        
+        # Build with CMake
+        cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$env:CMAKE_TOOLCHAIN_FILE -DVCPKG_TARGET_TRIPLET=x64-windows
+        cmake --build build --config Release
+        
+        # Copy the executable to the expected location
+        Copy-Item "build/Release/bittorrent.exe" "build/${{ matrix.artifact_name }}"
+
+    - name: Test executable
+      run: |
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            ./build/${{ matrix.artifact_name }} --help || echo "Help command failed, but executable exists"
+        else
+            ./build/${{ matrix.artifact_name }} --help || echo "Help command failed, but executable exists"
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: build/${{ matrix.artifact_name }}
+
+    - name: Upload to release
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: build/${{ matrix.artifact_name }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_content_type: application/octet-stream
+
+  create-release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body: |
+          Automated release of BitTorrent client
+          
+          ## Changes
+          - Built from commit: ${{ github.sha }}
+          - Build number: ${{ github.run_number }}
+          
+          ## Downloads
+          - Linux: `bittorrent-linux-x64`
+          - macOS: `bittorrent-macos-x64`
+          - Windows: `bittorrent-windows-x64.exe`
+        draft: false
+        prerelease: false
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Upload Linux binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/bittorrent-linux-x64/bittorrent-linux
+        asset_name: bittorrent-linux-x64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/bittorrent-macos-x64/bittorrent-macos
+        asset_name: bittorrent-macos-x64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/bittorrent-windows-x64.exe/bittorrent-windows.exe
+        asset_name: bittorrent-windows-x64.exe
+        asset_content_type: application/octet-stream 

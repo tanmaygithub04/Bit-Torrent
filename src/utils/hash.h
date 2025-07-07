@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iomanip>
 #include <array>
+#include <vector>
 
 class HashUtils {
 public:

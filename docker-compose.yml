@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  bittorrent:
+    image: bittorrent-showcase:latest
+    container_name: bittorrent-client
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    ports:
+      - "6881:6881"  # BitTorrent port
+      - "6881:6881/udp"  # BitTorrent UDP port
+    volumes:
+      - ./downloads:/app/downloads
+      - ./torrents:/app/torrents
+      - ./config:/app/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+    networks:
+      - bittorrent-network
+    # Override the default command to run with custom arguments
+    # Uncomment and modify the line below to customize startup
+    # command: ["./bittorrent", "--port", "6881", "--downloads", "/app/downloads"]
+
+networks:
+  bittorrent-network:
+    driver: bridge
+
+volumes:
+  downloads:
+    driver: local
+  torrents:
+    driver: local
+  config:
+    driver: local 
