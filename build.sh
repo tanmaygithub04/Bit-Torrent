@@ -214,19 +214,19 @@ build_project() {
     
     # Compile
     print_info "Compiling with g++..."
-    g++ -std=c++20 \
+g++ -std=c++20 \
         $INCLUDE_DIRS \
         $LIBRARY_DIRS \
         -o build/bittorrent \
         $MAIN_FILE \
-        src/core/*.cpp \
-        src/utils/*.cpp \
+    src/core/*.cpp \
+    src/utils/*.cpp \
         $LIBRARIES \
         -O2 -DNDEBUG
-    
-    if [ $? -eq 0 ]; then
+
+if [ $? -eq 0 ]; then
         print_success "Build successful! Executable created at build/bittorrent"
-        
+
         # Make executable
         chmod +x build/bittorrent
         

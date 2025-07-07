@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
         
         // Step 2: Request peer list from tracker
         TerminalUI::logNetwork("Connecting to tracker...");
-        
+
         auto response = Tracker::getPeers(
             metadata, 
             "00112233445566778899",  // Example peer_id (should be 20 bytes)
@@ -105,8 +105,8 @@ int main(int argc, char* argv[]) {
         for (int pieceIndex = 0; pieceIndex < totalPieces; ++pieceIndex) {
             TerminalUI::showProgress(pieceIndex, totalPieces, "Downloading pieces");
             
-            auto pieceOpt = dm.downloadPiece(pieceIndex);
-            if (!pieceOpt.has_value()) {
+        auto pieceOpt = dm.downloadPiece(pieceIndex);
+        if (!pieceOpt.has_value()) {
                 cout << endl;
                 TerminalUI::logError("Failed to download piece " + to_string(pieceIndex));
                 TerminalUI::logInfo("You may want to try again or check your network connection");

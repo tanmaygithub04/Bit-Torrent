@@ -5,13 +5,14 @@ tasks:
     init: |
       sudo apt-get update
       sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential
-      chmod +x build.sh quick-start.sh
-      echo "🚀 BitTorrent Client environment ready!"
-      echo "Try: ./quick-start.sh docker-download sample.torrent"
+      chmod +x run.sh build.sh
     command: |
-      gp sync-done setup
-      echo "Welcome to BitTorrent Client!"
-      echo "Quick demo: ./quick-start.sh docker-download sample.torrent"
+      echo "🚀 BitTorrent Client Ready!"
+      echo ""
+      echo "Two simple commands:"
+      echo "  ./run.sh docker    # 🐳 Instant demo"
+      echo "  ./run.sh build     # 🔧 Local build"
+      echo ""
 
 ports:
   - port: 6881

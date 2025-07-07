@@ -7,7 +7,7 @@
         "ghcr.io/devcontainers/features/github-cli:1": {}
     },
 
-    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential && chmod +x build.sh quick-start.sh",
+    "postCreateCommand": "sudo apt-get update && sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential && chmod +x run.sh build.sh && echo '🚀 BitTorrent Client Ready!' && echo 'Try: ./run.sh docker'",
 
     "customizations": {
         "vscode": {
